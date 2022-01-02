@@ -16,6 +16,10 @@ contract MultiSignature is AccessControl {
 
     // @dev action to kick a signatory. Useful for hacked wallets.
     bytes32 public constant VOTE_KICK = keccak256("VOTE_KICK");
+    // @dev action to grant roles
+    bytes32 public constant GRANT_ROLE = keccak256("GRANT_ROLE");
+    // @dev action to revoke roles
+    bytes32 public constant REVOKE_ROLE = keccak256("REVOKE_ROLE");
 
     // @dev minimumSignatures to pass a ticket. Should be set at constructor
     uint minimumSignatures;
@@ -68,6 +72,17 @@ contract MultiSignature is AccessControl {
     // @dev vote kick function in case of a signatory hacked wallet, for example
     function voteKick(address toKick) external onlyRole(0x00) needTicket(VOTE_KICK) {
         _revokeRole(0x00, toKick);
+    }
+
+    // @dev overrides to require ticket to change roles
+    function grantRole(bytes32 role, address account)
+    public virtual override onlyRole(getRoleAdmin(role)) needTicket(GRANT_ROLE) {
+        _grantRole(role, account);
+    }
+
+    function revokeRole(bytes32 role, address account)
+    public virtual override onlyRole(getRoleAdmin(role)) needTicket(REVOKE_ROLE) {
+        _revokeRole(role, account);
     }
 
 }
