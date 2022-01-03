@@ -54,23 +54,33 @@ contract MultiSignature is AccessControl {
     }
 
     // @dev All signatories are admins with the same privilege and only one vote at a time
-    function signAction(bytes32 action) external onlyRole(0x00) {
+    function _signAction(bytes32 action) private onlyRole(0x00) {
         require(hasSignature[msg.sender], "MultiSignature: No signatures left in this wallet.");
         hasSignature[msg.sender] = false;
         signatorySupport[msg.sender] = action;
         signatures[action] += 1;
     }
 
+    function signAction(bytes32 action) public onlyRole(0x00) {
+        _signAction(action);
+    }
+
     // @dev unsign supported action and recover vote power
-    function unsignAction() external onlyRole(0x00) {
-        require(!hasSignature[msg.sender], "MultiSignature: No signatures to unsign in this wallet.");
-        hasSignature[msg.sender] = true;
-        signatures[signatorySupport[msg.sender]] -= 1;
-        signatorySupport[msg.sender] = 0x00;
+    function _unsignAction(address who) private onlyRole(0x00) {
+        require(!hasSignature[who], "MultiSignature: No signatures to unsign in this wallet.");
+        hasSignature[who] = true;
+        signatures[signatorySupport[who]] -= 1;
+        signatorySupport[who] = 0x00;
+    }
+
+    function unsignAction() public onlyRole(0x00) {
+        _unsignAction(msg.sender);
     }
 
     // @dev vote kick function in case of a signatory hacked wallet, for example
     function voteKick(address toKick) external onlyRole(0x00) needTicket(VOTE_KICK) {
+        _unsignAction(toKick);
+        signatures[REVOKE_ROLE] = minimumSignatures;
         _revokeRole(0x00, toKick);
     }
 
